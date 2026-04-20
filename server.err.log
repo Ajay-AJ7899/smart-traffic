@@ -1,0 +1,23 @@
+Watching for file changes with StatReloader
+[21/Apr/2026 00:54:58] "GET / HTTP/1.1" 200 3249
+[21/Apr/2026 00:54:58,472] - Broken pipe from ('127.0.0.1', 60002)
+[21/Apr/2026 00:55:06] "GET /optimize-route?origin=MG%20Road,Bengaluru&destination=Airport%20Road,Bengaluru HTTP/1.1" 200 154
+[21/Apr/2026 00:55:07,823] - Broken pipe from ('127.0.0.1', 52849)
+D:\hackathon\django\main-traffic\traffic\services\maps.py changed, reloading.
+Watching for file changes with StatReloader
+[21/Apr/2026 00:56:35] "GET /optimize-route?origin=MG%20Road,Bengaluru&destination=Airport%20Road,Bengaluru HTTP/1.1" 200 717
+[21/Apr/2026 00:56:35,585] - Broken pipe from ('127.0.0.1', 53855)
+D:\hackathon\django\main-traffic\traffic\services\maps.py changed, reloading.
+Watching for file changes with StatReloader
+[21/Apr/2026 00:57:07] "GET /optimize-route?origin=MG%20Road,Bengaluru&destination=Airport%20Road,Bengaluru HTTP/1.1" 200 538
+[21/Apr/2026 00:57:08,356] - Broken pipe from ('127.0.0.1', 53708)
+[21/Apr/2026 00:58:00] "GET / HTTP/1.1" 200 3249
+[21/Apr/2026 00:58:01] "GET /static/traffic/css/dashboard.css HTTP/1.1" 200 3953
+[21/Apr/2026 00:58:01] "GET /static/traffic/js/dashboard.js HTTP/1.1" 200 4810
+[21/Apr/2026 00:58:01] "GET /traffic-data HTTP/1.1" 200 13977
+Not Found: /favicon.ico
+[21/Apr/2026 00:58:03] "GET /favicon.ico HTTP/1.1" 404 2816
+[21/Apr/2026 00:58:07] "GET /optimize-route?origin=MG%20Road&destination=Airport%20Road HTTP/1.1" 200 942
+[21/Apr/2026 00:58:23] "GET /optimize-route?origin=MG%20Road&destination=Airport%20Road HTTP/1.1" 200 942
+[21/Apr/2026 00:58:24] "GET /optimize-route?origin=MG%20Road&destination=Airport%20Road HTTP/1.1" 200 942
+[21/Apr/2026 00:58:48] "GET /predict?location=MG%20Road&horizon_minutes=60 HTTP/1.1" 200 296

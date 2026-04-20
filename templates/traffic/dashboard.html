@@ -1,0 +1,95 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Traffic Prediction Dashboard</title>
+  <link rel="stylesheet" href="{% static 'traffic/css/dashboard.css' %}">
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script defer src="{% static 'traffic/js/dashboard.js' %}"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Operations Console</p>
+      <h1>Smart Traffic Prediction Dashboard</h1>
+    </div>
+    <form id="prediction-form" class="toolbar">
+      <input name="location" value="MG Road" aria-label="Location">
+      <button type="submit">Predict</button>
+    </form>
+  </header>
+
+  <main class="dashboard-grid">
+    <section class="map-panel">
+      <div class="section-heading">
+        <h2>Traffic Heatmap</h2>
+        <span id="alert-pill" class="status-pill">Monitoring</span>
+      </div>
+      <div
+        id="map"
+        class="map-shell"
+        aria-label="Traffic map visualization"
+        data-provider="{{ maps_provider }}"
+        data-google-key="{{ google_maps_api_key }}"
+      >
+        <div class="road horizontal road-a"></div>
+        <div class="road horizontal road-b"></div>
+        <div class="road vertical road-c"></div>
+        <button class="marker low" style="left:20%;top:34%">MG Road</button>
+        <button class="marker medium" style="left:56%;top:22%">Airport Road</button>
+        <button class="marker high" style="left:67%;top:64%">Outer Ring</button>
+        <button class="marker medium" style="left:36%;top:72%">Electronic City</button>
+      </div>
+    </section>
+
+    <section class="prediction-panel">
+      <div class="section-heading">
+        <h2>Prediction</h2>
+        <span id="prediction-time">Next hour</span>
+      </div>
+      <div id="prediction-card" class="metric-card">
+        <span class="metric-label">Predicted congestion</span>
+        <strong id="predicted-congestion">Loading</strong>
+        <span id="estimated-delay">Delay estimate pending</span>
+      </div>
+      <canvas id="trend-chart" height="180"></canvas>
+    </section>
+
+    <section class="route-panel">
+      <div class="section-heading">
+        <h2>Route Suggestion</h2>
+        <span id="route-provider">Offline</span>
+      </div>
+      <form id="route-form" class="route-form">
+        <input name="origin" value="MG Road" aria-label="Origin">
+        <input name="destination" value="Airport Road" aria-label="Destination">
+        <button type="submit">Optimize</button>
+      </form>
+      <div id="route-result" class="route-result">Enter origin and destination to compare routes.</div>
+    </section>
+
+    <section class="table-panel">
+      <div class="section-heading">
+        <h2>Historical Feed</h2>
+        <span>Latest observations</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Location</th>
+              <th>Congestion</th>
+              <th>Speed</th>
+              <th>Incidents</th>
+            </tr>
+          </thead>
+          <tbody id="traffic-table"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
