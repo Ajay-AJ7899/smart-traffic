@@ -1,36 +1,239 @@
 # Smart Traffic Prediction Dashboard
 
-Production-ready MVP for traffic ingestion, congestion prediction, alerts, route optimization, and a simple operations dashboard.
+A Django-based smart traffic operations dashboard for ingesting traffic observations, predicting congestion, showing high-congestion alerts, and suggesting routes with Google Maps, Mapbox, or an offline/local fallback.
+
+## What This Project Does
+
+- Shows a web dashboard at `http://127.0.0.1:8000/`
+- Stores traffic observations such as location, congestion level, average speed, and incidents
+- Predicts near-future congestion using ARIMA when enough history exists
+- Falls back to a seasonal baseline when the dataset is small
+- Returns alert payloads when high congestion is submitted
+- Suggests routes using one of three modes:
+  - Google Routes API, when `MAPS_PROVIDER=google` and `GOOGLE_MAPS_API_KEY` is configured
+  - Mapbox placeholder mode, when `MAPS_PROVIDER=mapbox` and `MAPBOX_ACCESS_TOKEN` is configured
+  - Offline/local estimate mode, when no live provider is reachable or configured
+- Provides Django admin for managing traffic and prediction records
+
+## Current Local Admin Login
+
+The local development database has this admin user:
+
+```text
+URL: http://127.0.0.1:8000/admin/
+Username: admin
+Password: admin123
+Email: admin@example.com
+```
+
+This is only for local development/demo use. Change the password before using this project outside your machine.
+
+## Tech Stack
+
+- Python 3.12
+- Django 5.0.6
+- Django REST Framework
+- SQLite for local development
+- PostgreSQL support through Docker or `.env`
+- django-cors-headers for CORS configuration
+- python-dotenv for environment variables
+- requests for external Maps API calls
+- pandas, numpy, statsmodels, scikit-learn, and joblib for prediction/model support
+- Chart.js on the dashboard frontend
+- WhiteNoise for static file serving
+- Gunicorn for container/production-style serving
 
 ## Project Structure
 
 ```text
 smart_traffic/
-  settings.py          Django, DRF, PostgreSQL, static, Maps API config
+  settings.py          Django settings, database config, static files, maps config
   urls.py              Project URL routing
+  wsgi.py              WSGI entry point
+  asgi.py              ASGI entry point
+
 traffic/
+  admin.py             Django admin registration
+  apps.py              App config and local SQLite connection setup
   models.py            TrafficData and PredictionData models
   serializers.py       DRF serializers and query validators
-  views.py             API and dashboard views
+  views.py             API views and dashboard view
   services/
-    alerts.py          Real-time high-congestion alert logic
-    maps.py            Google Maps/Mapbox/offline route optimization service
-    prediction.py      ARIMA forecasting with seasonal fallback
+    alerts.py          High-congestion alert builder
+    maps.py            Google/Mapbox/offline route suggestion service
+    prediction.py      ARIMA plus seasonal fallback predictor
   management/commands/
     seed_traffic_data.py
-    train_model.py     ARIMA training command
+    train_model.py
+  tests.py             API tests
+
 templates/traffic/
-  dashboard.html       Dashboard shell
+  dashboard.html       Dashboard HTML shell
+
 static/traffic/
-  css/dashboard.css
-  js/dashboard.js
+  css/dashboard.css    Dashboard styling
+  js/dashboard.js      Dashboard API calls, charts, route UI, map loading
 ```
 
-## APIs
+## Environment Variables
 
-### `POST /traffic-data`
+The app reads configuration from `.env`.
 
-Stores real-time traffic input.
+```text
+DJANGO_SECRET_KEY=replace-with-a-long-random-secret
+DJANGO_DEBUG=True
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+CORS_ALLOWED_ORIGINS=
+TIME_ZONE=Asia/Kolkata
+
+POSTGRES_DB=smart_traffic
+POSTGRES_USER=smart_traffic
+POSTGRES_PASSWORD=smart_traffic
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+
+DATABASE_ENGINE=sqlite
+SQLITE_DB_PATH=runtime.sqlite3
+
+MAPS_PROVIDER=offline
+GOOGLE_MAPS_API_KEY=
+MAPBOX_ACCESS_TOKEN=
+
+ML_MIN_TRAINING_ROWS=12
+```
+
+## How To Start Locally
+
+### 1. Open the project folder
+
+```powershell
+cd D:\hackathon\django\main-traffic
+```
+
+### 2. Activate the virtual environment
+
+If you are using the existing environment in this repo:
+
+```powershell
+.\venv\Scripts\activate
+```
+
+Or call Python directly without activating:
+
+```powershell
+.\venv\Scripts\python.exe manage.py check
+```
+
+### 3. Install dependencies if needed
+
+```powershell
+pip install -r requirements.txt
+```
+
+Or:
+
+```powershell
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+### 4. Configure `.env`
+
+For the fastest local demo, use SQLite and offline routing:
+
+```text
+DATABASE_ENGINE=sqlite
+SQLITE_DB_PATH=runtime.sqlite3
+MAPS_PROVIDER=offline
+GOOGLE_MAPS_API_KEY=
+MAPBOX_ACCESS_TOKEN=
+```
+
+If you want Google live routing, use:
+
+```text
+MAPS_PROVIDER=google
+GOOGLE_MAPS_API_KEY=your-valid-google-routes-api-key
+```
+
+If you want Mapbox mode, use:
+
+```text
+MAPS_PROVIDER=mapbox
+MAPBOX_ACCESS_TOKEN=your-valid-mapbox-token
+```
+
+### 5. Apply migrations
+
+```powershell
+.\venv\Scripts\python.exe manage.py migrate
+```
+
+### 6. Seed demo traffic data
+
+```powershell
+.\venv\Scripts\python.exe manage.py seed_traffic_data
+```
+
+### 7. Create or reset the admin user
+
+```powershell
+.\venv\Scripts\python.exe manage.py shell -c "from django.contrib.auth import get_user_model; User=get_user_model(); user, _ = User.objects.update_or_create(username='admin', defaults={'email':'admin@example.com','is_staff':True,'is_superuser':True,'is_active':True}); user.set_password('admin123'); user.save(); print('admin ready')"
+```
+
+### 8. Run the server
+
+```powershell
+.\venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
+```
+
+Open:
+
+```text
+Dashboard: http://127.0.0.1:8000/
+Admin:     http://127.0.0.1:8000/admin/
+```
+
+## How To Start In The Background On Windows
+
+Use this if you want the terminal/chat to return immediately:
+
+```powershell
+$p = Start-Process -FilePath '.\venv\Scripts\python.exe' -ArgumentList 'manage.py','runserver','127.0.0.1:8000','--noreload' -WorkingDirectory 'D:\hackathon\django\main-traffic' -WindowStyle Hidden -PassThru
+$p.Id
+```
+
+Stop it later with:
+
+```powershell
+Stop-Process -Id <PROCESS_ID>
+```
+
+## API Endpoints
+
+### Dashboard
+
+```text
+GET /
+```
+
+Renders the traffic dashboard.
+
+### List traffic data
+
+```text
+GET /traffic-data
+GET /traffic-data?location=MG Road
+```
+
+Returns stored traffic observations.
+
+### Create traffic data
+
+```text
+POST /traffic-data
+```
+
+Example request:
 
 ```json
 {
@@ -42,148 +245,243 @@ Stores real-time traffic input.
 }
 ```
 
-High congestion rows return an `alert` payload.
+If the congestion level is `high`, the response includes an `alert` payload.
 
-### `GET /traffic-data`
-
-Fetches historical traffic data. Optional filter:
+### Predict congestion
 
 ```text
-/traffic-data?location=MG Road
+GET /predict?location=MG%20Road&horizon_minutes=60
 ```
 
-### `GET /predict`
+Returns:
 
-Returns ML traffic prediction.
+- predicted congestion level
+- predicted time
+- estimated delay
+- confidence score
+- model metadata
+- feature metadata
+
+### Optimize route
 
 ```text
-/predict?location=MG Road&horizon_minutes=60
+GET /optimize-route?origin=MG%20Road&destination=Airport%20Road
 ```
 
-Response includes congestion level, predicted time, delay estimate, confidence, and feature metadata.
+Returns:
 
-### `GET /optimize-route`
+- provider used
+- origin
+- destination
+- best route summary
+- distance
+- duration
+- live traffic availability
+- alternatives, if the provider returns them
 
-Returns a route suggestion.
+## What The Mapbox Access Token Is For
+
+`MAPBOX_ACCESS_TOKEN` is for using Mapbox as an alternate map/routing provider instead of Google.
+
+In this project, the maps service checks:
 
 ```text
-/optimize-route?origin=MG Road&destination=Airport Road
+MAPS_PROVIDER=mapbox
+MAPBOX_ACCESS_TOKEN=...
 ```
 
-If `GOOGLE_MAPS_API_KEY` is configured, live traffic-aware Google Directions data is used. Otherwise an offline fallback response keeps the dashboard functional. The dashboard also loads a Google Maps JavaScript traffic layer when the key is present.
+When both are set, route requests go through the Mapbox branch in `traffic/services/maps.py`.
 
-## Local Setup
+Important current behavior:
 
-1. Create and activate a virtual environment.
+- Google mode is the more complete live-routing implementation in this codebase.
+- Mapbox mode currently returns a placeholder response saying Mapbox optimization requires geocoded coordinates.
+- To make Mapbox fully live, the app would need an extra geocoding step that converts addresses like `MG Road` and `Airport Road` into longitude/latitude coordinates, then calls the Mapbox Directions or Optimization API.
 
-```bash
-python -m venv .venv
-.venv\Scripts\activate
+So the token is useful if you want to extend the project from Google-based live routing to Mapbox-based routing.
+
+## Routing Modes
+
+### Offline mode
+
+Use this for demos when internet/API access is unreliable:
+
+```text
+MAPS_PROVIDER=offline
+GOOGLE_MAPS_API_KEY=
+MAPBOX_ACCESS_TOKEN=
 ```
 
-If `python manage.py ...` says `No module named 'django'`, your terminal is using the wrong Python. On Windows, activate the existing project environment first:
+The app returns local estimated distance and duration.
+
+### Google mode
+
+Use this for live Google traffic-aware routing:
+
+```text
+MAPS_PROVIDER=google
+GOOGLE_MAPS_API_KEY=your-valid-google-routes-api-key
+```
+
+Google mode calls:
+
+```text
+https://routes.googleapis.com/directions/v2:computeRoutes
+```
+
+If Google is unreachable, invalid, blocked by proxy, or returns an error, the app falls back to a local estimate.
+
+### Mapbox mode
+
+Use this when extending the project for Mapbox:
+
+```text
+MAPS_PROVIDER=mapbox
+MAPBOX_ACCESS_TOKEN=your-valid-mapbox-token
+```
+
+The current implementation has a placeholder because Mapbox routing needs coordinates, not just plain address names.
+
+## Machine Learning
+
+Prediction is handled in `traffic/services/prediction.py`.
+
+It uses:
+
+- historical congestion values
+- timestamp history
+- time of day
+- day of week
+- recent average speed
+
+Prediction flow:
+
+1. Load historical rows for the requested location.
+2. If enough rows exist, fit an ARIMA model.
+3. If there is not enough data or ARIMA fails, use a seasonal baseline.
+4. Convert the predicted numeric score into `low`, `medium`, or `high`.
+5. Estimate delay minutes.
+6. Store the prediction in `PredictionData`.
+
+Train and persist a model artifact:
 
 ```powershell
-.\venv\Scripts\activate
-python manage.py check
+.\venv\Scripts\python.exe manage.py train_model --location "MG Road"
 ```
 
-Or run commands explicitly with:
+## Database
 
-```powershell
-.\venv\Scripts\python.exe manage.py migrate
-```
-
-2. Install dependencies.
-
-```bash
-pip install -r requirements.txt
-```
-
-3. Copy environment variables.
-
-```bash
-copy .env.example .env
-```
-
-4. Choose a database.
-
-For quick local development without PostgreSQL, set this in `.env`:
+Local development uses SQLite:
 
 ```text
 DATABASE_ENGINE=sqlite
+SQLITE_DB_PATH=runtime.sqlite3
 ```
 
-For PostgreSQL, keep `DATABASE_ENGINE=postgres`, start PostgreSQL, and update the `POSTGRES_*` values in `.env`.
+PostgreSQL is supported through:
 
-5. Apply migrations and seed demo data.
-
-```bash
-python manage.py migrate
-python manage.py seed_traffic_data
-```
-
-6. Run the app.
-
-```bash
-python manage.py runserver
-```
-
-Open `http://127.0.0.1:8000/`.
-
-Run smoke tests:
-
-```bash
-python manage.py test
+```text
+DATABASE_ENGINE=postgres
+POSTGRES_DB=smart_traffic
+POSTGRES_USER=smart_traffic
+POSTGRES_PASSWORD=smart_traffic
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
 ```
 
 ## Docker
 
-```bash
+The Docker setup includes:
+
+- PostgreSQL 16 Alpine
+- Django web service
+- Gunicorn server
+
+Run:
+
+```powershell
 copy .env.example .env
 docker compose up --build
 ```
 
-## Machine Learning
-
-Prediction uses:
-
-- historical traffic congestion observations
-- time of day
-- day of week
-- recent average speed for delay estimation
-
-The online predictor fits ARIMA when enough rows are available and falls back to a seasonal baseline when data is sparse. To train and persist a model artifact:
-
-```bash
-python manage.py seed_traffic_data
-python manage.py train_model --location "MG Road"
-```
-
-## Environment Variables
+Then open:
 
 ```text
-DJANGO_SECRET_KEY
-DJANGO_DEBUG
-DJANGO_ALLOWED_HOSTS
-POSTGRES_DB
-POSTGRES_USER
-POSTGRES_PASSWORD
-POSTGRES_HOST
-POSTGRES_PORT
-DATABASE_ENGINE
-SQLITE_DB_PATH
-MAPS_PROVIDER
-GOOGLE_MAPS_API_KEY
-MAPBOX_ACCESS_TOKEN
-ML_MIN_TRAINING_ROWS
+http://127.0.0.1:8000/
+```
+
+## Tests
+
+Run all tests:
+
+```powershell
+.\venv\Scripts\python.exe manage.py test
+```
+
+Run only traffic API tests:
+
+```powershell
+.\venv\Scripts\python.exe manage.py test traffic.tests
+```
+
+## Common Issues
+
+### Route suggestion says Google is unavailable
+
+This means the app tried Google live routing, but the request failed. Common reasons:
+
+- invalid API key
+- Google Routes API not enabled
+- billing not enabled in Google Cloud
+- internet/proxy issue
+- local environment points HTTPS traffic to a dead proxy such as `127.0.0.1:9`
+
+For a demo, switch to:
+
+```text
+MAPS_PROVIDER=offline
+GOOGLE_MAPS_API_KEY=
+```
+
+### SQLite disk I/O error
+
+On this Windows workspace, SQLite rollback journal writes may fail. The app config applies:
+
+```sql
+PRAGMA journal_mode=OFF;
+```
+
+for SQLite connections to keep local development working.
+
+### Port 8000 already in use
+
+Find the process:
+
+```powershell
+Get-NetTCPConnection -LocalPort 8000
+```
+
+Stop the process:
+
+```powershell
+Stop-Process -Id <PROCESS_ID>
+```
+
+Or run on another port:
+
+```powershell
+.\venv\Scripts\python.exe manage.py runserver 127.0.0.1:8001
 ```
 
 ## Production Notes
 
 - Set `DJANGO_DEBUG=False`.
 - Use a strong `DJANGO_SECRET_KEY`.
-- Restrict `DJANGO_ALLOWED_HOSTS` and `CORS_ALLOWED_ORIGINS`.
-- Run behind HTTPS and a reverse proxy.
-- Configure `GOOGLE_MAPS_API_KEY` for live route optimization and traffic-aware durations.
-- Use a browser-restricted Google Maps key for the dashboard traffic layer, and a server-restricted key for backend route optimization in a hardened production deployment.
+- Do not commit real API keys.
+- Use PostgreSQL instead of SQLite.
+- Restrict `DJANGO_ALLOWED_HOSTS`.
+- Configure `CORS_ALLOWED_ORIGINS`.
+- Run behind HTTPS.
+- Use Gunicorn plus a reverse proxy.
+- Use separate restricted keys for browser maps and server-side routing.
+- Change or remove the demo admin login.

@@ -4,76 +4,205 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Smart Traffic Prediction Dashboard</title>
+  <meta name="description" content="Smart Traffic AI — Real-time traffic prediction, peak hour forecast, route optimization and live map visualization powered by Geoapify.">
+  <title>Smart Traffic AI — Live Dashboard</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Dashboard styles -->
   <link rel="stylesheet" href="{% static 'traffic/css/dashboard.css' %}">
-  <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script defer src="{% static 'traffic/js/dashboard.js' %}"></script>
 </head>
 <body>
+
+  <!-- ═══════════════ TOP NAV ═══════════════ -->
   <header class="topbar">
-    <div>
-      <p class="eyebrow">Operations Console</p>
-      <h1>Smart Traffic Prediction Dashboard</h1>
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div>
+        <p class="eyebrow">Operations Console</p>
+        <h1>Smart Traffic AI</h1>
+      </div>
     </div>
+
     <form id="prediction-form" class="toolbar">
-      <input name="location" value="MG Road" aria-label="Location">
-      <button type="submit">Predict</button>
+      <div class="input-wrap">
+        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+        <input id="location-input" name="location" value="MG Road" aria-label="Location" list="location-options" placeholder="Enter location…">
+      </div>
+      <datalist id="location-options">
+        <option value="MG Road"></option>
+        <option value="Airport Road"></option>
+        <option value="Outer Ring Road"></option>
+        <option value="Electronic City"></option>
+      </datalist>
+      <button type="submit" id="predict-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        Predict
+      </button>
+      <div id="alert-pill" class="status-pill monitoring">
+        <span class="pulse-dot"></span>
+        <span id="alert-text">Monitoring</span>
+      </div>
     </form>
   </header>
 
+  <!-- ═══════════════ MAIN GRID ═══════════════ -->
   <main class="dashboard-grid">
-    <section class="map-panel">
+
+    <!-- ── MAP (row 1, col 1) ── -->
+    <section class="map-panel glass-card">
       <div class="section-heading">
-        <h2>Traffic Heatmap</h2>
-        <span id="alert-pill" class="status-pill">Monitoring</span>
+        <div class="heading-group">
+          <h2>Live Traffic Map</h2>
+          <span id="map-subtitle" class="subtitle">Geoapify Dark · Bangalore, India</span>
+        </div>
+        <div class="map-controls">
+          <span class="map-legend-inline">
+            <span class="legend-dot low"></span>Low
+            <span class="legend-dot medium"></span>Medium
+            <span class="legend-dot high"></span>High
+          </span>
+          <button class="icon-btn" id="center-btn" title="Re-centre map">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
       </div>
       <div
         id="map"
         class="map-shell"
-        aria-label="Traffic map visualization"
+        aria-label="Traffic map with congestion circles"
         data-provider="{{ maps_provider }}"
         data-google-key="{{ google_maps_api_key }}"
-      >
-        <div class="road horizontal road-a"></div>
-        <div class="road horizontal road-b"></div>
-        <div class="road vertical road-c"></div>
-        <button class="marker low" style="left:20%;top:34%">MG Road</button>
-        <button class="marker medium" style="left:56%;top:22%">Airport Road</button>
-        <button class="marker high" style="left:67%;top:64%">Outer Ring</button>
-        <button class="marker medium" style="left:36%;top:72%">Electronic City</button>
+        data-geoapify-key="{{ geoapify_api_key }}"
+      ></div>
+      <!-- Intensity legend -->
+      <div class="intensity-legend">
+        <span class="il-label">Circle radius = congestion intensity</span>
+        <div class="il-samples">
+          <span class="il-circle small"></span><span>Low</span>
+          <span class="il-circle medium"></span><span>Medium</span>
+          <span class="il-circle large"></span><span>High</span>
+        </div>
       </div>
     </section>
 
-    <section class="prediction-panel">
+    <!-- ── RIGHT COLUMN (row 1, col 2) ── -->
+    <aside class="right-col">
+
+      <!-- AI PREDICTION -->
+      <section class="prediction-panel glass-card">
+        <div class="section-heading">
+          <h2>AI Prediction</h2>
+          <span id="prediction-time" class="subtitle">60-min horizon</span>
+        </div>
+        <div id="prediction-card" class="metric-card">
+          <span class="metric-label">Predicted Congestion</span>
+          <strong id="predicted-congestion">—</strong>
+          <span id="estimated-delay" class="delay-badge">Calculating…</span>
+          <div class="confidence-wrap">
+            <span class="confidence-label">Model confidence</span>
+            <div class="confidence-bar-bg"><div id="confidence-bar" class="confidence-bar-fill" style="width:0%"></div></div>
+            <span id="confidence-pct" class="confidence-pct">—</span>
+          </div>
+        </div>
+        <canvas id="trend-chart" height="140"></canvas>
+      </section>
+
+      <!-- ROUTE OPTIMIZER -->
+      <section class="route-panel glass-card">
+        <div class="section-heading">
+          <h2>Route Optimizer</h2>
+          <span id="route-provider" class="provider-badge">geoapify</span>
+        </div>
+        <form id="route-form" class="route-form">
+          <div class="input-wrap">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+            <input id="origin-input" name="origin" value="MG Road" aria-label="Origin" placeholder="Origin…" list="location-options">
+          </div>
+          <div class="input-wrap">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            <input id="dest-input" name="destination" value="Airport Road" aria-label="Destination" placeholder="Destination…" list="location-options">
+          </div>
+          <button type="submit" id="optimize-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+            Optimize Route
+          </button>
+        </form>
+        <div id="route-result" class="route-result">
+          <p class="route-placeholder">Enter origin &amp; destination to see the optimal route on the map.</p>
+        </div>
+        <div id="route-steps" class="route-steps hidden"></div>
+      </section>
+
+    </aside>
+
+    <!-- ── PEAK HOUR FORECAST (row 2, full width) ── -->
+    <section class="peak-panel glass-card">
       <div class="section-heading">
-        <h2>Prediction</h2>
-        <span id="prediction-time">Next hour</span>
+        <div class="heading-group">
+          <h2>Peak Hour Forecast</h2>
+          <span id="peak-subtitle" class="subtitle">24-hour congestion pattern</span>
+        </div>
+        <div class="peak-meta" id="peak-meta">
+          <div class="peak-stat">
+            <span class="ps-label">Worst hour</span>
+            <span class="ps-value" id="worst-hour">—</span>
+          </div>
+          <div class="peak-stat">
+            <span class="ps-label">Best hour</span>
+            <span class="ps-value" id="best-hour">—</span>
+          </div>
+          <div class="peak-stat">
+            <span class="ps-label">Now</span>
+            <span class="ps-value" id="now-level">—</span>
+          </div>
+        </div>
       </div>
-      <div id="prediction-card" class="metric-card">
-        <span class="metric-label">Predicted congestion</span>
-        <strong id="predicted-congestion">Loading</strong>
-        <span id="estimated-delay">Delay estimate pending</span>
+
+      <!-- Hour bar strip -->
+      <div class="hour-strip-wrap">
+        <div id="hour-strip" class="hour-strip" role="list" aria-label="Hourly congestion forecast"></div>
       </div>
-      <canvas id="trend-chart" height="180"></canvas>
+
+      <!-- Big chart -->
+      <div class="peak-chart-wrap">
+        <canvas id="peak-chart" height="110"></canvas>
+      </div>
+
+      <!-- Peak hours pills -->
+      <div class="peak-hours-row">
+        <span class="ph-label">⚡ Peak periods:</span>
+        <div id="peak-pills" class="peak-pills"></div>
+      </div>
     </section>
 
-    <section class="route-panel">
-      <div class="section-heading">
-        <h2>Route Suggestion</h2>
-        <span id="route-provider">Offline</span>
-      </div>
-      <form id="route-form" class="route-form">
-        <input name="origin" value="MG Road" aria-label="Origin">
-        <input name="destination" value="Airport Road" aria-label="Destination">
-        <button type="submit">Optimize</button>
-      </form>
-      <div id="route-result" class="route-result">Enter origin and destination to compare routes.</div>
-    </section>
-
-    <section class="table-panel">
+    <!-- ── HISTORICAL FEED (row 3, full width) ── -->
+    <section class="table-panel glass-card">
       <div class="section-heading">
         <h2>Historical Feed</h2>
-        <span>Latest observations</span>
+        <span id="feed-status" class="subtitle">Latest observations</span>
       </div>
       <div class="table-wrap">
         <table>
@@ -82,7 +211,7 @@
               <th>Time</th>
               <th>Location</th>
               <th>Congestion</th>
-              <th>Speed</th>
+              <th>Avg Speed</th>
               <th>Incidents</th>
             </tr>
           </thead>
@@ -90,6 +219,15 @@
         </table>
       </div>
     </section>
+
   </main>
+
+  <!-- LOADING OVERLAY -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <p>Loading Smart Traffic AI…</p>
+  </div>
+
+  <script src="{% static 'traffic/js/dashboard.js' %}"></script>
 </body>
 </html>

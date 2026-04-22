@@ -13,6 +13,7 @@ from .serializers import (
 from .services.alerts import build_alert_payload
 from .services.maps import route_optimizer
 from .services.prediction import predictor
+from .services.peak_hours import peak_hour_forecast, all_locations_intensity
 
 
 class DashboardView(View):
@@ -23,6 +24,7 @@ class DashboardView(View):
             {
                 "maps_provider": route_optimizer.provider_name,
                 "google_maps_api_key": route_optimizer.browser_api_key,
+                "geoapify_api_key": route_optimizer.geoapify_browser_api_key,
             },
         )
 
@@ -66,3 +68,25 @@ class OptimizeRouteAPIView(APIView):
             alternatives=serializer.validated_data["alternatives"],
         )
         return Response(route, status=status.HTTP_200_OK)
+
+
+class PeakHourForecastAPIView(APIView):
+    """
+    GET /peak-hours?location=MG+Road
+    Returns 24-hour congestion forecast for a location.
+    """
+    def get(self, request):
+        location = request.query_params.get("location", "MG Road")
+        data = peak_hour_forecast(location)
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class TrafficIntensityAPIView(APIView):
+    """
+    GET /traffic-intensity
+    Returns current congestion intensity + coordinates for all known locations.
+    Used to draw radius circles on the map.
+    """
+    def get(self, request):
+        data = all_locations_intensity()
+        return Response({"locations": data}, status=status.HTTP_200_OK)

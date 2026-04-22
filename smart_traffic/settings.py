@@ -24,7 +24,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "corsheaders",
-    "traffic",
+    "traffic.apps.TrafficConfig",
 ]
 
 MIDDLEWARE = [
@@ -118,6 +118,8 @@ CORS_ALLOWED_ORIGINS = [
 MAPS_PROVIDER = os.getenv("MAPS_PROVIDER", "google").lower()
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
 MAPBOX_ACCESS_TOKEN = os.getenv("MAPBOX_ACCESS_TOKEN", "")
+OPENROUTESERVICE_API_KEY = os.getenv("OPENROUTESERVICE_API_KEY", "")
+GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY", "")
 
 ML_MODEL_PATH = BASE_DIR / "models" / "traffic_arima.joblib"
 ML_MIN_TRAINING_ROWS = int(os.getenv("ML_MIN_TRAINING_ROWS", "12"))
